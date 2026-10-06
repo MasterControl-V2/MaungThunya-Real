@@ -26,7 +26,7 @@ import { storeChatMessage } from './chatHistoryAndSummarization';
 import { BLOCKED_DOMAINS, BLOCKED_APP_IDS, BLOCKED_KEYWORDS_REGEX } from './constants';
 
 // NEW: Auto-delete delay for welcome/name change messages (in milliseconds)
-const WELCOME_MESSAGE_DELETE_DELAY_MS = 15000; // 15 seconds
+const WELCOME_MESSAGE_DELETE_DELAY_MS = 10000; // 10 seconds
 
 
 /**
