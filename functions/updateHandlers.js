@@ -79,7 +79,7 @@ function scheduleMessageDeletion(ctx, token, chatId, messageId, botKeyValue, del
 
 /**
  * Handles updates when a chat member's status changes (e.g., join, leave, name change).
- * UPDATED: Welcome/Name Change messages are auto-deleted after 15 seconds.
+ * UPDATED: Welcome/Leave messages are auto-deleted after 10 seconds.
  * @param {object} chatMemberUpdate - Telegram ChatMemberUpdated object.
  * @param {string} token - Telegram Bot Token.
  * @param {object} env - Cloudflare Environment object.
@@ -142,7 +142,7 @@ export async function handleChatMemberUpdate(chatMemberUpdate, token, env, botKe
             console.log(`[handleChatMemberUpdate] User data stored for ${userId}.`); 
         }
         
-        // NEW: Send message and schedule auto-deletion after 15 seconds
+        // NEW: Send message and schedule auto-deletion after 10 seconds
         const sendResult = await sendMessage(token, chatId, messageText, 'HTML', null, botKeyValue);
         const sentMessageId = sendResult && sendResult.result ? sendResult.result.message_id : null;
         
@@ -171,7 +171,7 @@ export async function handleChatMemberUpdate(chatMemberUpdate, token, env, botKe
             "           <b>BYE BYE !!! 🤭</b>\n" + 
             "<b>┗━━━━━━━━━━━━━━━┛</b>"
         );
-        // Leave message also auto-deleted after 15 seconds
+        // Leave message also auto-deleted after 10 seconds
         const sendResult = await sendMessage(token, chatId, exitMessageText, 'HTML', null, botKeyValue);
         const sentMessageId = sendResult && sendResult.result ? sendResult.result.message_id : null;
         
@@ -394,12 +394,14 @@ export async function handleCallbackQuery(callbackQuery, token, env, botKeyValue
 
 /**
  * Handles name change tracking for users sending messages.
+ * UPDATED: Name change messages are auto-deleted after 10 seconds.
  * @param {object} message - Telegram Message object.
  * @param {string} token - Telegram Bot Token.
  * @param {object} env - Cloudflare Environment object.
  * @param {string} botKeyValue - The BOT_DATA key for validation.
+ * @param {object} ctx - Cloudflare context object (for waitUntil).
  */
-export async function handleMessageUpdateForNameChange(message, token, env, botKeyValue) {
+export async function handleMessageUpdateForNameChange(message, token, env, botKeyValue, ctx) {
     const userId = message.from.id;
     const chatId = message.chat.id;
     console.log(`[handleMessageUpdateForNameChange] Checking name change for user ${userId}.`);
@@ -438,7 +440,17 @@ export async function handleMessageUpdateForNameChange(message, token, env, botK
         const oldNamesDisplay = oldFullNames.length > 0 ? oldFullNames.map(name => `<b>${name || "အမည်မရှိပါ"}</b>`).join(", ") : "<b>မရှိပါ</b>";
         const oldUsernamesDisplay = oldUsernames.length > 0 ? oldUsernames.map(uname => `<b>${uname || "မရှိပါ"}</b>`).join(", ") : "<b>မရှိပါ</b>";
         const messageText = ( "<b>┏━━━━━━━━━━━━━━━━━━┓</b>\n" + "    <b>📌Group Member Update!</b>\n" + "<b>┗━━━━━━━━━━━━━━━━━━┛</b>\n\n" + `<b>👤 User:</b> ${userLink}\n\n` + `<b>🆔 ID: ${userId}</b>\n` + "<b>━━━━━━━━━━━━━━━━━━━━</b>\n" + `<b>📛 Old Name(s):</b> {${oldNamesDisplay}}\n\n` + `<b>🔗 Old Username(s): ${oldUsernamesDisplay}</b>\n` + "<b>━━━━━━━━━━━━━━━━━━━━</b>\n" + `<b>🆕 New Name:</b> ${currentFullName || "မရှိပါ"}\n\n` + `<b>🔄 New Username: ${currentUsername || "မရှိပါ"}</b>\n` + "<b>━━━━━━━━━━━━━━━━━━━━</b>" );
-        await sendMessage(token, chatId, messageText, 'HTML', null, botKeyValue);
+        
+        // NEW: Send message and schedule auto-deletion after 10 seconds
+        const sendResult = await sendMessage(token, chatId, messageText, 'HTML', null, botKeyValue);
+        const sentMessageId = sendResult && sendResult.result ? sendResult.result.message_id : null;
+        
+        if (sentMessageId) {
+            scheduleMessageDeletion(ctx, token, chatId, sentMessageId, botKeyValue, WELCOME_MESSAGE_DELETE_DELAY_MS);
+        } else {
+            console.warn("[handleMessageUpdateForNameChange] Could not retrieve message_id. Auto-delete skipped.");
+        }
+        
         const updatedNames = new Set(oldFullNames); 
         const updatedUsernames = new Set(oldUsernames);
         if (currentFullName) updatedNames.add(currentFullName); 
