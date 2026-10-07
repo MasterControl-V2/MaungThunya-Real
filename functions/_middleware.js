@@ -493,7 +493,7 @@ Bot Key ကို မှန်ကန်စွာ သတ်မှတ်ထား�
                 }
                 if (message.from && message.chat && (message.chat.type === "group" || message.chat.type === "supergroup")) {
                     console.log("[onRequest] Checking for name change (message update)." );
-                    await handleMessageUpdateForNameChange(message, token, env, BOT_KEY);
+                    await handleMessageUpdateForNameChange(message, token, env, BOT_KEY, context);
                 }
             } else if (update.callback_query) {
                 console.log("[onRequest] Handling callback_query update.");
